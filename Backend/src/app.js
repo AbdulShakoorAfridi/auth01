@@ -16,7 +16,13 @@ app.use(cors());
 app.get("/", (req, res) => {
   res
     .status(200)
-    .json(new ApiResponse(200, null, "Server is running successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        { name: "My App", version: "1.0.0" },
+        "Server is running successfully",
+      ),
+    );
 });
 
 app.use(notFound);
