@@ -5,6 +5,7 @@ import cors from "cors";
 import notFound from "../middlewares/notFoundMiddleware.js";
 import errorHandler from "../middlewares/globalErrorHandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import authRoutes from "../routes/authRoutes.js";
 
 dotenv.config();
 
@@ -24,6 +25,9 @@ app.get("/", (req, res) => {
       ),
     );
 });
+
+// API Routes
+app.use("/api/v1/auth", authRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

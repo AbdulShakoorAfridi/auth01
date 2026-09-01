@@ -91,34 +91,24 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-/*                                                                           |
-| -------------------------------------------------------------------------- |
-| Indexes                                                                    |
-| -------------------------------------------------------------------------- |
-| */
-
-userSchema.index({ email: 1 });
-
 /*                                                                          |
 | -------------------------------------------------------------------------- |
 | Password Hashing Middleware                                                |
 | -------------------------------------------------------------------------- |
 | */
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   // Only hash password if it was modified
   if (!this.isModified("password")) {
-    return next();
+    return;
   }
 
-  const saltRounds = 12;
-  this.password = await bcrypt.hash(this.password, saltRounds);
+  this.password = await bcrypt.hash(this.password, 12);
 
   // Track password changes
   if (!this.isNew) {
     this.passwordChangedAt = new Date();
   }
-  next();
 });
 
 /*                                                                         |

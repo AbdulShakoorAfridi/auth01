@@ -19,7 +19,6 @@ const refreshTokenSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
     },
 
     revoked: {
@@ -32,10 +31,15 @@ const refreshTokenSchema = new mongoose.Schema(
       default: null,
     },
 
+    // replacedByToken: {
+    //   type: String,
+    //   default: null,
+    //   select: false,
+    // },
     replacedByToken: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "RefreshToken",
       default: null,
-      select: false,
     },
 
     device: {
