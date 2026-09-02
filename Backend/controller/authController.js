@@ -147,7 +147,7 @@ export const logoutAll = globalAsyncHandler(async (req, res) => {
     );
 });
 
-// getMe test controller logic
+// getMe Profile test controller logic
 
 export const getMe = globalAsyncHandler(async (req, res) => {
   res.status(200).json(
@@ -157,6 +157,24 @@ export const getMe = globalAsyncHandler(async (req, res) => {
         user: req.user,
       },
       "User retrieved successfully",
+    ),
+  );
+});
+
+// admin test controller logic
+export const adminTest = globalAsyncHandler(async (req, res) => {
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          id: req.user._id,
+          name: req.user.name,
+          email: req.user.email,
+          role: req.user.role,
+        },
+      },
+      "Admin access granted",
     ),
   );
 });
