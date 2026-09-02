@@ -1,10 +1,12 @@
 // import asyncHandler from "../utils/asyncHandler.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import ApiError from "../utils/ApiError.js";
 
 import refreshTokenCookieOptions from "../utils/cookieOptions.js";
 
 import {
   loginUser,
+  logoutUser,
   refreshAccessToken,
   registerUser,
 } from "../services/authService.js";
@@ -112,4 +114,18 @@ export const refresh = globalAsyncHandler(async (req, res) => {
       "Token refreshed successfully",
     ),
   );
+});
+
+// logoutUser controller logic
+
+export const logout = globalAsyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (refreshToken) {
+    await logoutUser(refreshToken);
+  }
+
+  res.clearCookie("refreshToken", refreshTokenCookieOptions);
+
+  res.status(200).json(new ApiResponse(200, null, "Logout successful"));
 });

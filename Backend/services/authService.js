@@ -251,3 +251,22 @@ export const refreshAccessToken = async (refreshToken, metadata = {}) => {
     refreshToken: newRefreshToken,
   };
 };
+
+// Logout user
+export const logoutUser = async (refreshToken) => {
+  if (!refreshToken) {
+    return;
+  }
+
+  const tokenHash = hashToken(refreshToken);
+
+  await RefreshToken.findOneAndUpdate(
+    { tokenHash },
+    {
+      $set: {
+        revoked: true,
+        revokedAt: new Date(),
+      },
+    },
+  );
+};
