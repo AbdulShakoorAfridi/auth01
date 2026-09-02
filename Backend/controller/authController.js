@@ -9,6 +9,7 @@ import {
   logoutUser,
   refreshAccessToken,
   registerUser,
+  logoutAllDevices,
 } from "../services/authService.js";
 import globalAsyncHandler from "../middlewares/asyncHandles.js";
 
@@ -128,4 +129,34 @@ export const logout = globalAsyncHandler(async (req, res) => {
   res.clearCookie("refreshToken", refreshTokenCookieOptions);
 
   res.status(200).json(new ApiResponse(200, null, "Logout successful"));
+});
+
+// logoutUser from all devices controller logic
+
+export const logoutAll = globalAsyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  await logoutAllDevices(userId);
+
+  res.clearCookie("refreshToken", refreshTokenCookieOptions);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, null, "Logged out from all devices successfully"),
+    );
+});
+
+// getMe test controller logic
+
+export const getMe = globalAsyncHandler(async (req, res) => {
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: req.user,
+      },
+      "User retrieved successfully",
+    ),
+  );
 });

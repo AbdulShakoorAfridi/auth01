@@ -270,3 +270,20 @@ export const logoutUser = async (refreshToken) => {
     },
   );
 };
+
+// logoutUser from all the devices
+
+export const logoutAllDevices = async (userId) => {
+  await RefreshToken.updateMany(
+    {
+      userId,
+      revoked: false,
+    },
+    {
+      $set: {
+        revoked: true,
+        revokedAt: new Date(),
+      },
+    },
+  );
+};

@@ -7,10 +7,20 @@ import {
   login,
   refresh,
   logout,
+  getMe,
+  logoutAll,
 } from "../controller/authController.js";
+// import { logoutAllDevices } from "../services/authService.js";
+import authenticate from "../middlewares/authMiddleware.js";
 
 route.post("/register", register);
 route.post("/login", login);
 route.post("/refresh", refresh);
 route.post("/logout", logout);
+
+// Protected routes
+route.get("/me", authenticate, getMe);
+
+route.post("/logout-all", authenticate, logoutAll);
+
 export default route;
