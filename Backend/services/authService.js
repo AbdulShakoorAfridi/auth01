@@ -7,6 +7,7 @@ import {
   generateRefreshToken,
   hashToken,
   getTokenExpiry,
+  verifyRefreshToken,
 } from "./tokenService.js";
 
 /**
@@ -150,5 +151,103 @@ export const loginUser = async (userData, metadata = {}) => {
     user: safeUser,
     accessToken,
     refreshToken,
+  };
+};
+
+// refreshAccessTokenService refresh token rotation
+
+export const refreshAccessToken = async (refreshToken, metadata = {}) => {
+  // 1. Verify refresh token JWT
+  const decoded = verifyRefreshToken(refreshToken);
+
+  // 2. Hash the raw token
+  const tokenHash = hashToken(refreshToken);
+
+  // 3. Find token in database
+  const storedToken = await RefreshToken.findOne({
+    tokenHash,
+  }).select("+tokenHash");
+
+  if (!storedToken) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  // 4. Detect token reuse
+  if (storedToken.revoked) {
+    // Security measure:
+    // revoke all sessions belonging to this user
+    await RefreshToken.updateMany(
+      {
+        userId: storedToken.userId,
+        revoked: false,
+      },
+      {
+        $set: {
+          revoked: true,
+          revokedAt: new Date(),
+        },
+      },
+    );
+
+    throw new ApiError(
+      401,
+      "Refresh token reuse detected. Please log in again.",
+    );
+  }
+
+  // 5. Check expiration
+  if (storedToken.expiresAt < new Date()) {
+    throw new ApiError(401, "Refresh token expired");
+  }
+
+  // 6. Make sure token belongs to the JWT user
+  if (storedToken.userId.toString() !== decoded.sub) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  // 7. Get user
+  const user = await User.findById(storedToken.userId);
+
+  if (!user) {
+    throw new ApiError(401, "User account no longer exists");
+  }
+
+  // 8. Check account status
+  if (!user.isActive) {
+    throw new ApiError(403, "Your account has been deactivated");
+  }
+
+  // 9. Revoke old refresh token
+  storedToken.revoked = true;
+  storedToken.revokedAt = new Date();
+
+  // 10. Generate new tokens
+  const newAccessToken = generateAccessToken(user);
+
+  const newRefreshToken = generateRefreshToken(user);
+
+  // 11. Hash new refresh token
+  const newTokenHash = hashToken(newRefreshToken);
+
+  const newExpiresAt = getTokenExpiry(newRefreshToken);
+
+  // 12. Store new refresh token
+  const newStoredToken = await RefreshToken.create({
+    userId: user._id,
+    tokenHash: newTokenHash,
+    expiresAt: newExpiresAt,
+    device: metadata.device || null,
+    ipAddress: metadata.ipAddress || null,
+    userAgent: metadata.userAgent || null,
+  });
+
+  // 13. Link old token → new token
+  storedToken.replacedByToken = newStoredToken._id;
+
+  await storedToken.save();
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
   };
 };

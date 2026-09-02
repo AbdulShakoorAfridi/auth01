@@ -3,7 +3,11 @@ import ApiResponse from "../utils/ApiResponse.js";
 
 import refreshTokenCookieOptions from "../utils/cookieOptions.js";
 
-import { loginUser, registerUser } from "../services/authService.js";
+import {
+  loginUser,
+  refreshAccessToken,
+  registerUser,
+} from "../services/authService.js";
 import globalAsyncHandler from "../middlewares/asyncHandles.js";
 
 /**
@@ -76,6 +80,36 @@ export const login = globalAsyncHandler(async (req, res) => {
         accessToken,
       },
       "Login successful",
+    ),
+  );
+});
+
+// refreshAccessToken rotation
+
+export const refresh = globalAsyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    throw new ApiError(401, "Refresh token is required");
+  }
+
+  const metadata = {
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent"),
+  };
+
+  const { accessToken, refreshToken: newRefreshToken } =
+    await refreshAccessToken(refreshToken, metadata);
+
+  res.cookie("refreshToken", newRefreshToken, refreshTokenCookieOptions);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        accessToken,
+      },
+      "Token refreshed successfully",
     ),
   );
 });
