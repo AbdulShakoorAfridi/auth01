@@ -3,7 +3,7 @@ import ApiResponse from "../utils/ApiResponse.js";
 
 import refreshTokenCookieOptions from "../utils/cookieOptions.js";
 
-import { registerUser } from "../services/authService.js";
+import { loginUser, registerUser } from "../services/authService.js";
 import globalAsyncHandler from "../middlewares/asyncHandles.js";
 
 /**
@@ -38,6 +38,44 @@ export const register = globalAsyncHandler(async (req, res) => {
         accessToken,
       },
       "User registered successfully",
+    ),
+  );
+});
+
+// LOGIN USER
+
+/**
+
+* Login User
+* POST /api/v1/auth/login
+  */
+export const login = globalAsyncHandler(async (req, res) => {
+  const userData = req.body;
+
+  // Request metadata
+  const metadata = {
+    ipAddress: req.ip,
+    userAgent: req.get("user-agent"),
+  };
+
+  // Login user
+  const { user, accessToken, refreshToken } = await loginUser(
+    userData,
+    metadata,
+  );
+
+  // Store refresh token in HTTP-only cookie
+  res.cookie("refreshToken", refreshToken, refreshTokenCookieOptions);
+
+  // Send response
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user,
+        accessToken,
+      },
+      "Login successful",
     ),
   );
 });

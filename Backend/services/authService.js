@@ -78,3 +78,77 @@ export const registerUser = async (userData, metadata = {}) => {
     refreshToken,
   };
 };
+
+// LOGIN SERVICE
+/**
+
+* Login user
+  */
+export const loginUser = async (userData, metadata = {}) => {
+  const { email, password } = userData;
+
+  // Find user and explicitly include password
+  const user = await User.findOne({
+    email: email.toLowerCase(),
+  }).select("+password");
+
+  // Prevent account enumeration
+  // Same error whether email or password is incorrect
+  if (!user) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  // Check if account is active
+  if (!user.isActive) {
+    throw new ApiError(403, "Your account has been deactivated");
+  }
+
+  // Compare passwords
+  const isPasswordCorrect = await user.comparePassword(password);
+
+  if (!isPasswordCorrect) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  // Update last login
+  user.lastLogin = new Date();
+  await user.save({ validateBeforeSave: false });
+
+  // Generate tokens
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  // Hash refresh token before storing
+  const tokenHash = hashToken(refreshToken);
+
+  // Get refresh token expiry
+  const expiresAt = getTokenExpiry(refreshToken);
+
+  // Create new session
+  await RefreshToken.create({
+    userId: user._id,
+    tokenHash,
+    expiresAt,
+
+    device: metadata.device || null,
+    ipAddress: metadata.ipAddress || null,
+    userAgent: metadata.userAgent || null,
+  });
+
+  // Convert user to plain object
+  const safeUser = user.toObject();
+
+  // Remove sensitive fields
+  delete safeUser.password;
+  delete safeUser.passwordResetToken;
+  delete safeUser.passwordResetExpires;
+  delete safeUser.emailVerificationToken;
+  delete safeUser.emailVerificationExpires;
+  delete safeUser.__v;
+
+  return {
+    user: safeUser,
+    accessToken,
+    refreshToken,
+  };
+};
