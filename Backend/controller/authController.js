@@ -10,6 +10,7 @@ import {
   refreshAccessToken,
   registerUser,
   logoutAllDevices,
+  verifyEmail,
 } from "../services/authService.js";
 import globalAsyncHandler from "../middlewares/asyncHandles.js";
 
@@ -175,6 +176,28 @@ export const adminTest = globalAsyncHandler(async (req, res) => {
         },
       },
       "Admin access granted",
+    ),
+  );
+});
+
+// email verification controller logic
+export const verifyEmailController = globalAsyncHandler(async (req, res) => {
+  const { token } = req.params;
+
+  const user = await verifyEmail(token);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          isEmailVerified: user.isEmailVerified,
+        },
+      },
+      "Email verified successfully",
     ),
   );
 });

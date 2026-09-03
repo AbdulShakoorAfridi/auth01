@@ -10,6 +10,7 @@ import {
   getMe,
   logoutAll,
   adminTest,
+  verifyEmailController,
 } from "../controller/authController.js";
 // import { logoutAllDevices } from "../services/authService.js";
 import authenticate from "../middlewares/authMiddleware.js";
@@ -28,3 +29,6 @@ route.post("/logout-all", authenticate, logoutAll);
 // admin route testing
 route.get("/admin-test", authenticate, authorize("admin"), adminTest);
 export default route;
+
+// email verification route
+route.get("/verify-email/:token", verifyEmailController);

@@ -1,6 +1,7 @@
 import RefreshToken from "../models/refreshToken.Model.js";
 import User from "../models/user.Model.js";
 import ApiError from "../utils/ApiError.js";
+import { generateRandomToken } from "../utils/generateEmailVerificationToken.js";
 
 import {
   generateAccessToken,
@@ -9,6 +10,8 @@ import {
   getTokenExpiry,
   verifyRefreshToken,
 } from "./tokenService.js";
+
+import { sendVerificationEmail } from "./emailService.js";
 
 /**
 
@@ -33,6 +36,18 @@ export const registerUser = async (userData, metadata = {}) => {
     name,
     email,
     password,
+  });
+
+  // email verification token generation
+
+  const verificationToken = await createEmailVerificationToken(user);
+
+  const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+
+  await sendVerificationEmail({
+    email: user.email,
+    name: user.name,
+    verificationUrl,
   });
 
   // Generate access token
@@ -286,4 +301,58 @@ export const logoutAllDevices = async (userId) => {
       },
     },
   );
+};
+
+// email verification token generation service
+export const createEmailVerificationToken = async (user) => {
+  const rawToken = generateRandomToken(32);
+  const hashedToken = hashToken(rawToken);
+  user.emailVerificationToken = hashedToken;
+
+  // Token valid for 15 minutes
+  user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+  await user.save({
+    validateBeforeSave: false,
+  });
+
+  return rawToken;
+};
+
+// verifying email verification token service
+
+export const verifyEmail = async (token) => {
+  if (!token) {
+    throw new ApiError(400, "Verification token is required");
+  }
+
+  const hashedToken = hashToken(token);
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpires: {
+      $gt: new Date(),
+    },
+  }).select("+emailVerificationToken +emailVerificationExpires");
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired verification token");
+  }
+
+  if (user.isEmailVerified) {
+    throw new ApiError(400, "Email is already verified");
+  }
+
+  user.isEmailVerified = true;
+
+  // Destroy token immediately.
+  // This makes it single-use.
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+
+  await user.save({
+    validateBeforeSave: false,
+  });
+
+  return user;
 };
