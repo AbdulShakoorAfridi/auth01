@@ -11,7 +11,10 @@ import {
   verifyRefreshToken,
 } from "./tokenService.js";
 
-import { sendVerificationEmail } from "./emailService.js";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "./emailService.js";
 
 /**
 
@@ -406,4 +409,93 @@ export const resendVerificationEmail = async (email) => {
     name: user.name,
     verificationUrl,
   });
+};
+
+//forgot password service
+
+export const forgotPassword = async (email) => {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+  }).select("+passwordResetToken +passwordResetExpires");
+
+  // IMPORTANT:
+  // Never tell the client whether the email exists.
+  if (!user) {
+    return;
+  }
+
+  // Don't reset passwords for inactive accounts.
+  if (!user.isActive) {
+    return;
+  }
+
+  const rawToken = generateRandomToken(32);
+
+  const hashedToken = hashToken(rawToken);
+
+  user.passwordResetToken = hashedToken;
+
+  user.passwordResetExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  await user.save({
+    validateBeforeSave: false,
+  });
+
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
+
+  await sendPasswordResetEmail({
+    email: user.email,
+    name: user.name,
+    resetUrl,
+  });
+};
+
+// reset password service
+export const resetPassword = async (token, newPassword) => {
+  if (!token) {
+    throw new ApiError(400, "Password reset token is required");
+  }
+
+  const hashedToken = hashToken(token);
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: {
+      $gt: new Date(),
+    },
+  }).select("+passwordResetToken +passwordResetExpires +password");
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired password reset token");
+  }
+
+  if (!user.isActive) {
+    throw new ApiError(403, "Your account has been deactivated");
+  }
+
+  // Set the new password.
+  // Your pre-save middleware will hash it.
+  user.password = newPassword;
+
+  // Make token single-use.
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  await user.save();
+
+  // Invalidate all existing refresh sessions.
+  await RefreshToken.updateMany(
+    {
+      userId: user._id,
+      revoked: false,
+    },
+    {
+      $set: {
+        revoked: true,
+        revokedAt: new Date(),
+      },
+    },
+  );
 };

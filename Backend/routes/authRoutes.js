@@ -12,6 +12,8 @@ import {
   adminTest,
   verifyEmailController,
   resendVerification,
+  forgotPasswordController,
+  resetPasswordController,
 } from "../controller/authController.js";
 // import { logoutAllDevices } from "../services/authService.js";
 import authenticate from "../middlewares/authMiddleware.js";
@@ -36,3 +38,9 @@ export default route;
 
 // email verification route
 route.get("/verify-email/:token", verifyEmailController);
+
+// forgot password route
+route.post("/forgot-password", forgotPasswordController);
+
+// reset password route
+route.post("/reset-password/:token", resetPasswordController);

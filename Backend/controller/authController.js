@@ -12,6 +12,8 @@ import {
   logoutAllDevices,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
 } from "../services/authService.js";
 import globalAsyncHandler from "../middlewares/asyncHandles.js";
 
@@ -217,6 +219,43 @@ export const resendVerification = globalAsyncHandler(async (req, res) => {
         200,
         null,
         "If an account exists with this email, a verification email has been sent",
+      ),
+    );
+});
+
+// forgot password controller logic
+export const forgotPasswordController = globalAsyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  await forgotPassword(email);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "If an account exists with this email, a password reset link has been sent",
+      ),
+    );
+});
+
+// reset password controller logic
+
+export const resetPasswordController = globalAsyncHandler(async (req, res) => {
+  const { token } = req.params;
+
+  const { newPassword } = req.body;
+
+  await resetPassword(token, newPassword);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "Password reset successfully. Please log in again.",
       ),
     );
 });
