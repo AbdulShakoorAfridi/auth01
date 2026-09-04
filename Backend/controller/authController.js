@@ -11,6 +11,7 @@ import {
   registerUser,
   logoutAllDevices,
   verifyEmail,
+  resendVerificationEmail,
 } from "../services/authService.js";
 import globalAsyncHandler from "../middlewares/asyncHandles.js";
 
@@ -200,4 +201,22 @@ export const verifyEmailController = globalAsyncHandler(async (req, res) => {
       "Email verified successfully",
     ),
   );
+});
+
+// resend email verification controller logic
+export const resendVerification = globalAsyncHandler(async (req, res) => {
+  const { email } = req.body;
+  //   console.log("Resend verification email request received for:", email);
+
+  await resendVerificationEmail(email);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "If an account exists with this email, a verification email has been sent",
+      ),
+    );
 });

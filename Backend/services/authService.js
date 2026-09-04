@@ -356,3 +356,54 @@ export const verifyEmail = async (token) => {
 
   return user;
 };
+
+// resend email verification token service
+export const resendVerificationEmail = async (email) => {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+  }).select("+emailVerificationToken +emailVerificationExpires");
+
+  // console.log(
+  //   user
+  //     ? `Resend verification email request received for: ${normalizedEmail}`
+  //     : `No user found for email: ${normalizedEmail}`,
+  // );
+
+  /*
+   * Don't reveal whether the account exists.
+   * The controller will return the same response either way.
+   */
+
+  if (!user) {
+    return;
+  }
+
+  // Already verified
+  if (user.isEmailVerified) {
+    // console.log("Email is already verified...........");
+    return;
+  }
+
+  // Generate completely new token
+  const rawToken = generateRandomToken(32);
+
+  // Store only hash
+  user.emailVerificationToken = hashToken(rawToken);
+
+  // New token valid for 15 minutes
+  user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+  await user.save({
+    validateBeforeSave: false,
+  });
+
+  const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${rawToken}`;
+
+  await sendVerificationEmail({
+    email: user.email,
+    name: user.name,
+    verificationUrl,
+  });
+};

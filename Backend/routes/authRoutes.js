@@ -11,12 +11,16 @@ import {
   logoutAll,
   adminTest,
   verifyEmailController,
+  resendVerification,
 } from "../controller/authController.js";
 // import { logoutAllDevices } from "../services/authService.js";
 import authenticate from "../middlewares/authMiddleware.js";
 import authorize from "../middlewares/authorizeMiddleware.js";
 
 route.post("/register", register);
+
+route.post("/resend-verification", resendVerification);
+
 route.post("/login", login);
 route.post("/refresh", refresh);
 route.post("/logout", logout);
