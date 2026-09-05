@@ -1,5 +1,11 @@
 import express from "express";
 const route = express.Router();
+import {
+  loginRateLimiter,
+  forgotPasswordRateLimiter,
+  resetPasswordRateLimiter,
+  refreshRateLimiter,
+} from "../middlewares/rateLimitMiddleware.js";
 
 // user Register route
 import {
@@ -23,8 +29,8 @@ route.post("/register", register);
 
 route.post("/resend-verification", resendVerification);
 
-route.post("/login", login);
-route.post("/refresh", refresh);
+route.post("/login", loginRateLimiter, login);
+route.post("/refresh", refreshRateLimiter, refresh);
 route.post("/logout", logout);
 
 // Protected routes
@@ -40,7 +46,15 @@ export default route;
 route.get("/verify-email/:token", verifyEmailController);
 
 // forgot password route
-route.post("/forgot-password", forgotPasswordController);
+route.post(
+  "/forgot-password",
+  forgotPasswordRateLimiter,
+  forgotPasswordController,
+);
 
 // reset password route
-route.post("/reset-password/:token", resetPasswordController);
+route.post(
+  "/reset-password/:token",
+  resetPasswordRateLimiter,
+  resetPasswordController,
+);
